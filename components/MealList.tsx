@@ -70,8 +70,8 @@ export default function MealList({ meals, onEdit, onDelete }: MealListProps) {
                 <div className="text-sm font-semibold">{meal.carbs}g</div>
               </div>
               <div>
-                <div className="text-xs text-gray-500">Sugar</div>
-                <div className="text-sm font-semibold">{meal.sugar}g</div>
+                <div className="text-xs text-gray-500">Added Sugar</div>
+                <div className="text-sm font-semibold">{meal['added sugar']}g</div>
               </div>
               <div>
                 <div className="text-xs text-gray-500">Fat</div>

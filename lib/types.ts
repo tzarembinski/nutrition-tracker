@@ -7,7 +7,7 @@ export interface MealEntry {
   calories: number;
   protein: number;
   carbs: number;
-  sugar: number;
+  'added sugar': number;
   fat: number;
   fiber: number;
   notes?: string;
@@ -29,7 +29,7 @@ export interface DailySummary {
   calories: number;
   protein: number;
   carbs: number;
-  sugar: number;
+  'added sugar': number;
   fat: number;
   fiber: number;
   mealCount: number;

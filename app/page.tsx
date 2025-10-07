@@ -208,7 +208,7 @@ export default function Home() {
 
             {dailySummaries.length > 0 ? (
               <>
-                <NutritionChart data={dailySummaries} type="line" />
+                <NutritionChart data={dailySummaries} />
 
                 {/* Daily Breakdown Table */}
                 <div className="bg-white p-6 rounded-lg shadow-md">

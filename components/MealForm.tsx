@@ -11,294 +11,122 @@ interface MealFormProps {
 }
 
 export default function MealForm({ onSubmit, initialData, onCancel }: MealFormProps) {
-  const [formData, setFormData] = useState({
-    date: initialData?.date || format(new Date(), 'yyyy-MM-dd'),
-    mealType: (initialData?.mealType || 'breakfast') as MealType,
-    calories: initialData?.calories?.toString() || '',
-    protein: initialData?.protein?.toString() || '',
-    carbs: initialData?.carbs?.toString() || '',
-    sugar: initialData?.sugar?.toString() || '',
-    fat: initialData?.fat?.toString() || '',
-    fiber: initialData?.fiber?.toString() || '',
-    notes: initialData?.notes || '',
-  });
+  const [jsonInput, setJsonInput] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const validateAndParse = (jsonString: string): Omit<MealEntry, 'id'> | null => {
+    try {
+      const parsed = JSON.parse(jsonString);
+      const errors: string[] = [];
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
+      // Required fields
+      const requiredFields = ['calories', 'protein', 'carbs', 'added sugar', 'fat', 'fiber'];
+      const missingFields = requiredFields.filter(field => !(field in parsed));
 
-    // Validate date
-    if (!formData.date) {
-      newErrors.date = 'Date is required';
-    } else {
-      const selectedDate = new Date(formData.date);
-      const today = new Date();
-      today.setHours(23, 59, 59, 999);
-
-      if (selectedDate > today) {
-        newErrors.date = 'Future dates are not allowed';
+      if (missingFields.length > 0) {
+        setError(`Missing required fields: ${missingFields.join(', ')}`);
+        return null;
       }
+
+      // Validate numeric fields
+      const numericFields = ['calories', 'protein', 'carbs', 'added sugar', 'fat', 'fiber'];
+      for (const field of numericFields) {
+        const value = parsed[field];
+        if (typeof value !== 'number' || isNaN(value)) {
+          setError(`Invalid number for ${field}: must be a valid number`);
+          return null;
+        }
+        if (value < 0) {
+          setError(`Invalid number for ${field}: must be a positive number`);
+          return null;
+        }
+        if (value >= 10000) {
+          setError(`Invalid number for ${field}: must be less than 10,000`);
+          return null;
+        }
+      }
+
+      // Optional notes field
+      if (parsed.notes !== undefined && typeof parsed.notes !== 'string') {
+        setError('Notes must be a string');
+        return null;
+      }
+
+      return {
+        date: format(new Date(), 'yyyy-MM-dd'),
+        mealType: 'breakfast',
+        calories: parsed.calories,
+        protein: parsed.protein,
+        carbs: parsed.carbs,
+        'added sugar': parsed['added sugar'],
+        fat: parsed.fat,
+        fiber: parsed.fiber,
+        notes: parsed.notes,
+      };
+    } catch (e) {
+      setError(`Invalid JSON format. Please check and try again.\n\nExpected format:\n{\n  "calories": 850,\n  "protein": 55,\n  "carbs": 85,\n  "added sugar": 12,\n  "fat": 30,\n  "fiber": 8,\n  "notes": "Meal description"\n}`);
+      return null;
     }
-
-    // Validate nutrition values
-    const numericFields = ['calories', 'protein', 'carbs', 'sugar', 'fat', 'fiber'];
-
-    numericFields.forEach(field => {
-      const value = formData[field as keyof typeof formData];
-
-      if (!value) {
-        newErrors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
-        return;
-      }
-
-      const num = parseFloat(value as string);
-
-      if (isNaN(num)) {
-        newErrors[field] = 'Must be a valid number';
-      } else if (num < 0) {
-        newErrors[field] = 'Must be a positive number';
-      } else if (num >= 10000) {
-        newErrors[field] = 'Must be less than 10,000';
-      }
-    });
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setSuccess('');
 
-    if (!validateForm()) {
+    const parsedData = validateAndParse(jsonInput);
+    if (!parsedData) {
       return;
     }
 
-    const mealData: Omit<MealEntry, 'id'> = {
-      date: formData.date,
-      mealType: formData.mealType,
-      calories: parseFloat(formData.calories),
-      protein: parseFloat(formData.protein),
-      carbs: parseFloat(formData.carbs),
-      sugar: parseFloat(formData.sugar),
-      fat: parseFloat(formData.fat),
-      fiber: parseFloat(formData.fiber),
-      notes: formData.notes || undefined,
-    };
+    onSubmit(parsedData);
 
-    onSubmit(mealData);
+    // Show success message with values
+    setSuccess(`Entry saved successfully!\nCalories: ${parsedData.calories}\nProtein: ${parsedData.protein}g\nCarbs: ${parsedData.carbs}g\nAdded Sugar: ${parsedData['added sugar']}g\nFat: ${parsedData.fat}g\nFiber: ${parsedData.fiber}g${parsedData.notes ? `\nNotes: ${parsedData.notes}` : ''}`);
 
-    // Reset form if it's not an edit
-    if (!initialData) {
-      setFormData({
-        date: format(new Date(), 'yyyy-MM-dd'),
-        mealType: 'breakfast',
-        calories: '',
-        protein: '',
-        carbs: '',
-        sugar: '',
-        fat: '',
-        fiber: '',
-        notes: '',
-      });
-    }
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-
-    // Clear error for this field when user starts typing
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
+    // Clear form
+    setJsonInput('');
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-md">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Date */}
-        <div>
-          <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
-            Date *
-          </label>
-          <input
-            type="date"
-            id="date"
-            name="date"
-            value={formData.date}
-            onChange={handleChange}
-            max={format(new Date(), 'yyyy-MM-dd')}
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-              errors.date ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
-          {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
-        </div>
-
-        {/* Meal Type */}
-        <div>
-          <label htmlFor="mealType" className="block text-sm font-medium text-gray-700 mb-1">
-            Meal Type *
-          </label>
-          <select
-            id="mealType"
-            name="mealType"
-            value={formData.mealType}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            <option value="breakfast">Breakfast</option>
-            <option value="lunch">Lunch</option>
-            <option value="dinner">Dinner</option>
-            <option value="snack">Snack</option>
-          </select>
-        </div>
-
-        {/* Calories */}
-        <div>
-          <label htmlFor="calories" className="block text-sm font-medium text-gray-700 mb-1">
-            Calories *
-          </label>
-          <input
-            type="number"
-            id="calories"
-            name="calories"
-            value={formData.calories}
-            onChange={handleChange}
-            step="0.1"
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-              errors.calories ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
-          {errors.calories && <p className="text-red-500 text-xs mt-1">{errors.calories}</p>}
-        </div>
-
-        {/* Protein */}
-        <div>
-          <label htmlFor="protein" className="block text-sm font-medium text-gray-700 mb-1">
-            Protein (g) *
-          </label>
-          <input
-            type="number"
-            id="protein"
-            name="protein"
-            value={formData.protein}
-            onChange={handleChange}
-            step="0.1"
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-              errors.protein ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
-          {errors.protein && <p className="text-red-500 text-xs mt-1">{errors.protein}</p>}
-        </div>
-
-        {/* Carbs */}
-        <div>
-          <label htmlFor="carbs" className="block text-sm font-medium text-gray-700 mb-1">
-            Carbohydrates (g) *
-          </label>
-          <input
-            type="number"
-            id="carbs"
-            name="carbs"
-            value={formData.carbs}
-            onChange={handleChange}
-            step="0.1"
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-              errors.carbs ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
-          {errors.carbs && <p className="text-red-500 text-xs mt-1">{errors.carbs}</p>}
-        </div>
-
-        {/* Sugar */}
-        <div>
-          <label htmlFor="sugar" className="block text-sm font-medium text-gray-700 mb-1">
-            Sugar (g) *
-          </label>
-          <input
-            type="number"
-            id="sugar"
-            name="sugar"
-            value={formData.sugar}
-            onChange={handleChange}
-            step="0.1"
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-              errors.sugar ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
-          {errors.sugar && <p className="text-red-500 text-xs mt-1">{errors.sugar}</p>}
-        </div>
-
-        {/* Fat */}
-        <div>
-          <label htmlFor="fat" className="block text-sm font-medium text-gray-700 mb-1">
-            Fat (g) *
-          </label>
-          <input
-            type="number"
-            id="fat"
-            name="fat"
-            value={formData.fat}
-            onChange={handleChange}
-            step="0.1"
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-              errors.fat ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
-          {errors.fat && <p className="text-red-500 text-xs mt-1">{errors.fat}</p>}
-        </div>
-
-        {/* Fiber */}
-        <div>
-          <label htmlFor="fiber" className="block text-sm font-medium text-gray-700 mb-1">
-            Fiber (g) *
-          </label>
-          <input
-            type="number"
-            id="fiber"
-            name="fiber"
-            value={formData.fiber}
-            onChange={handleChange}
-            step="0.1"
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-              errors.fiber ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
-          {errors.fiber && <p className="text-red-500 text-xs mt-1">{errors.fiber}</p>}
-        </div>
-      </div>
-
-      {/* Notes */}
       <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-          Notes (Optional)
+        <label htmlFor="jsonInput" className="block text-sm font-medium text-gray-700 mb-1">
+          Paste JSON Nutrition Data
         </label>
         <textarea
-          id="notes"
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
-          rows={3}
-          placeholder="Add meal details, ingredients, or other notes..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+          id="jsonInput"
+          value={jsonInput}
+          onChange={(e) => {
+            setJsonInput(e.target.value);
+            setError('');
+            setSuccess('');
+          }}
+          rows={12}
+          placeholder='Paste JSON nutrition data here&#10;&#10;Example:&#10;{&#10;  "calories": 850,&#10;  "protein": 55,&#10;  "carbs": 85,&#10;  "added sugar": 12,&#10;  "fat": 30,&#10;  "fiber": 8,&#10;  "notes": "Meal description"&#10;}'
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono text-sm"
         />
       </div>
 
-      {/* Buttons */}
+      {error && (
+        <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded whitespace-pre-wrap">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="bg-green-50 border border-green-300 text-green-700 px-4 py-3 rounded whitespace-pre-wrap">
+          {success}
+        </div>
+      )}
+
       <div className="flex gap-3">
         <button
           type="submit"
           className="flex-1 bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
         >
-          {initialData ? 'Update Meal' : 'Add Meal'}
+          Parse and Save
         </button>
         {onCancel && (
           <button
