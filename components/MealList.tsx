@@ -14,6 +14,7 @@ const mealTypeColors = {
   lunch: 'bg-green-100 text-green-800 border-green-300',
   dinner: 'bg-blue-100 text-blue-800 border-blue-300',
   snack: 'bg-purple-100 text-purple-800 border-purple-300',
+  other: 'bg-gray-100 text-gray-800 border-gray-300',
 };
 
 const mealTypeLabels = {
@@ -21,6 +22,7 @@ const mealTypeLabels = {
   lunch: 'Lunch',
   dinner: 'Dinner',
   snack: 'Snack',
+  other: 'Other',
 };
 
 export default function MealList({ meals, onEdit, onDelete }: MealListProps) {

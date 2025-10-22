@@ -10,6 +10,11 @@ import {
   exportToCSV,
   downloadCSV,
 } from '@/lib/calculations';
+import {
+  calculateBenchmark,
+  formatBenchmarkLabel,
+  calculateDaysInRange,
+} from '@/lib/benchmarks';
 import MealForm from '@/components/MealForm';
 import MealList from '@/components/MealList';
 import SummaryCard from '@/components/SummaryCard';
@@ -74,6 +79,27 @@ export default function Home() {
   const summary = calculateSummary(filteredMeals);
   const dailySummaries = getDailySummaries(filteredMeals);
 
+  // Calculate number of days for benchmarks
+  const getNumberOfDays = (): number => {
+    if (filteredMeals.length === 0) return 1;
+
+    // Get unique dates
+    const uniqueDates = new Set(filteredMeals.map(meal => meal.date));
+    return uniqueDates.size;
+  };
+
+  const numberOfDays = getNumberOfDays();
+
+  // Calculate benchmarks
+  const benchmarks = {
+    calories: formatBenchmarkLabel(calculateBenchmark('calories', numberOfDays), numberOfDays, 'cal'),
+    protein: formatBenchmarkLabel(calculateBenchmark('protein', numberOfDays), numberOfDays, 'g'),
+    carbohydrates: formatBenchmarkLabel(calculateBenchmark('carbohydrates', numberOfDays), numberOfDays, 'g'),
+    fat: formatBenchmarkLabel(calculateBenchmark('fat', numberOfDays), numberOfDays, 'g'),
+    addedSugar: formatBenchmarkLabel(calculateBenchmark('addedSugar', numberOfDays), numberOfDays, 'g'),
+    fiber: formatBenchmarkLabel(calculateBenchmark('fiber', numberOfDays), numberOfDays, 'g'),
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -94,14 +120,49 @@ export default function Home() {
               : 'Overall Summary'}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <SummaryCard title="Total Calories" value={summary.totalCalories} color="blue" />
-            <SummaryCard title="Total Protein" value={summary.totalProtein} unit="g" color="green" />
-            <SummaryCard title="Total Carbs" value={summary.totalCarbs} unit="g" color="orange" />
-            <SummaryCard title="Total Fat" value={summary.totalFat} unit="g" color="red" />
+            <SummaryCard
+              title="Total Calories"
+              value={summary.totalCalories}
+              color="blue"
+              benchmark={benchmarks.calories}
+            />
+            <SummaryCard
+              title="Total Protein"
+              value={summary.totalProtein}
+              unit="g"
+              color="green"
+              benchmark={benchmarks.protein}
+            />
+            <SummaryCard
+              title="Total Carbs"
+              value={summary.totalCarbs}
+              unit="g"
+              color="orange"
+              benchmark={benchmarks.carbohydrates}
+            />
+            <SummaryCard
+              title="Total Fat"
+              value={summary.totalFat}
+              unit="g"
+              color="red"
+              benchmark={benchmarks.fat}
+            />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <SummaryCard title="Total Sugar" value={summary.totalSugar} unit="g" color="yellow" />
-            <SummaryCard title="Total Fiber" value={summary.totalFiber} unit="g" color="purple" />
+            <SummaryCard
+              title="Added Sugar"
+              value={summary.totalSugar}
+              unit="g"
+              color="yellow"
+              benchmark={benchmarks.addedSugar}
+            />
+            <SummaryCard
+              title="Total Fiber"
+              value={summary.totalFiber}
+              unit="g"
+              color="purple"
+              benchmark={benchmarks.fiber}
+            />
             <SummaryCard title="Avg Calories/Meal" value={summary.avgCalories} color="blue" />
             <SummaryCard title="Total Meals" value={summary.mealCount} color="green" />
           </div>

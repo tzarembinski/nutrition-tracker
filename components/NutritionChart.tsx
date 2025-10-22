@@ -10,8 +10,10 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
+import { DAILY_BENCHMARKS } from '@/lib/benchmarks';
 
 interface NutritionChartProps {
   data: DailySummary[];
@@ -75,13 +77,51 @@ export default function NutritionChart({ data }: NutritionChartProps) {
       {/* Macronutrients Chart */}
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Daily Macronutrients (grams)</h3>
+        <p className="text-xs text-gray-500 mb-3">
+          Dashed lines represent daily recommended targets for an active adult
+        </p>
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
-            <YAxis domain={[0, 200]} />
+            <YAxis domain={[0, 450]} />
             <Tooltip content={<MacrosTooltip />} />
             <Legend />
+            <ReferenceLine
+              y={DAILY_BENCHMARKS.protein}
+              stroke="#10b981"
+              strokeDasharray="5 5"
+              strokeOpacity={0.4}
+              label={{ value: 'Protein Target', position: 'insideTopRight', fill: '#10b981', fontSize: 10 }}
+            />
+            <ReferenceLine
+              y={DAILY_BENCHMARKS.carbohydrates}
+              stroke="#f59e0b"
+              strokeDasharray="5 5"
+              strokeOpacity={0.4}
+              label={{ value: 'Carbs Target', position: 'insideTopRight', fill: '#f59e0b', fontSize: 10 }}
+            />
+            <ReferenceLine
+              y={DAILY_BENCHMARKS.addedSugar}
+              stroke="#ef4444"
+              strokeDasharray="5 5"
+              strokeOpacity={0.4}
+              label={{ value: 'Sugar Max', position: 'insideTopRight', fill: '#ef4444', fontSize: 10 }}
+            />
+            <ReferenceLine
+              y={DAILY_BENCHMARKS.fat}
+              stroke="#8b5cf6"
+              strokeDasharray="5 5"
+              strokeOpacity={0.4}
+              label={{ value: 'Fat Target', position: 'insideTopRight', fill: '#8b5cf6', fontSize: 10 }}
+            />
+            <ReferenceLine
+              y={DAILY_BENCHMARKS.fiber}
+              stroke="#06b6d4"
+              strokeDasharray="5 5"
+              strokeOpacity={0.4}
+              label={{ value: 'Fiber Target', position: 'insideTopRight', fill: '#06b6d4', fontSize: 10 }}
+            />
             <Bar dataKey="Protein" fill="#10b981" />
             <Bar dataKey="Carbs" fill="#f59e0b" />
             <Bar dataKey="Added Sugar" fill="#ef4444" />
@@ -94,13 +134,23 @@ export default function NutritionChart({ data }: NutritionChartProps) {
       {/* Calories Chart */}
       <div className="bg-white p-6 rounded-lg shadow-md mt-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Daily Calories</h3>
+        <p className="text-xs text-gray-500 mb-3">
+          Dashed line represents daily recommended target (2,800 cal/day for an active adult)
+        </p>
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
-            <YAxis domain={[0, 3000]} />
+            <YAxis domain={[0, 3500]} />
             <Tooltip content={<CaloriesTooltip />} />
             <Legend />
+            <ReferenceLine
+              y={DAILY_BENCHMARKS.calories}
+              stroke="#0ea5e9"
+              strokeDasharray="5 5"
+              strokeOpacity={0.5}
+              label={{ value: 'Daily Target', position: 'insideTopRight', fill: '#0ea5e9', fontSize: 12 }}
+            />
             <Bar dataKey="Calories" fill="#0ea5e9" />
           </BarChart>
         </ResponsiveContainer>

@@ -4,6 +4,7 @@ interface SummaryCardProps {
   unit?: string;
   icon?: React.ReactNode;
   color?: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'yellow';
+  benchmark?: string;
 }
 
 const colorClasses = {
@@ -21,6 +22,7 @@ export default function SummaryCard({
   unit = '',
   icon,
   color = 'blue',
+  benchmark,
 }: SummaryCardProps) {
   return (
     <div className={`${colorClasses[color]} border rounded-lg p-4 shadow-sm`}>
@@ -31,6 +33,11 @@ export default function SummaryCard({
             {value.toLocaleString()}
             {unit && <span className="text-lg ml-1">{unit}</span>}
           </p>
+          {benchmark && (
+            <p className="text-xs text-gray-600 mt-1 opacity-70">
+              {benchmark}
+            </p>
+          )}
         </div>
         {icon && <div className="text-3xl opacity-60">{icon}</div>}
       </div>
