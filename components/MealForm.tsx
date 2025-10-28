@@ -13,6 +13,7 @@ interface MealFormProps {
 export default function MealForm({ onSubmit, initialData, onCancel }: MealFormProps) {
   const [jsonInput, setJsonInput] = useState('');
   const [mealType, setMealType] = useState<MealType>(initialData?.mealType || 'other');
+  const [selectedDate, setSelectedDate] = useState(initialData?.date || format(new Date(), 'yyyy-MM-dd'));
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [useManualEntry, setUseManualEntry] = useState(false);
@@ -83,7 +84,7 @@ export default function MealForm({ onSubmit, initialData, onCancel }: MealFormPr
       }
 
       return {
-        date: format(new Date(), 'yyyy-MM-dd'),
+        date: selectedDate,
         mealType: mealType,
         calories: parsed.calories,
         protein: parsed.protein,
@@ -137,7 +138,7 @@ export default function MealForm({ onSubmit, initialData, onCancel }: MealFormPr
     }
 
     return {
-      date: format(new Date(), 'yyyy-MM-dd'),
+      date: selectedDate,
       mealType: mealType,
       calories: calories,
       protein: protein,
@@ -153,6 +154,22 @@ export default function MealForm({ onSubmit, initialData, onCancel }: MealFormPr
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Validate date
+    const mealDate = new Date(selectedDate);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // Set to end of today for comparison
+
+    if (mealDate > today) {
+      setError('Meal date cannot be in the future. Please select today or an earlier date.');
+      return;
+    }
+
+    const minDate = new Date('1900-01-01');
+    if (mealDate < minDate) {
+      setError('Meal date must be after January 1, 1900.');
+      return;
+    }
 
     let parsedData: Omit<MealEntry, 'id'> | null;
 
@@ -199,28 +216,48 @@ export default function MealForm({ onSubmit, initialData, onCancel }: MealFormPr
     setManualFiber('');
     setManualNotes('');
     setMealType('other');
+    setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
     setError('');
     setSuccess('');
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-md">
-      <div>
-        <label htmlFor="mealType" className="block text-sm font-medium text-gray-700 mb-1">
-          Meal Type
-        </label>
-        <select
-          id="mealType"
-          value={mealType}
-          onChange={(e) => setMealType(e.target.value as MealType)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          <option value="other">Other</option>
-          <option value="breakfast">Breakfast</option>
-          <option value="lunch">Lunch</option>
-          <option value="dinner">Dinner</option>
-          <option value="snack">Snack</option>
-        </select>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="mealDate" className="block text-sm font-medium text-gray-700 mb-1">
+            Meal Date
+          </label>
+          <input
+            type="date"
+            id="mealDate"
+            value={selectedDate}
+            onChange={(e) => {
+              setSelectedDate(e.target.value);
+              setError('');
+              setSuccess('');
+            }}
+            max={format(new Date(), 'yyyy-MM-dd')}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+        <div>
+          <label htmlFor="mealType" className="block text-sm font-medium text-gray-700 mb-1">
+            Meal Type
+          </label>
+          <select
+            id="mealType"
+            value={mealType}
+            onChange={(e) => setMealType(e.target.value as MealType)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
+            <option value="other">Other</option>
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+            <option value="snack">Snack</option>
+          </select>
+        </div>
       </div>
 
       {/* Input Mode Toggle */}

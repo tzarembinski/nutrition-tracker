@@ -17,12 +17,12 @@ export const calculateSummary = (meals: MealEntry[]): NutritionSummary => {
 
   const totals = meals.reduce(
     (acc, meal) => ({
-      totalCalories: acc.totalCalories + meal.calories,
-      totalProtein: acc.totalProtein + meal.protein,
-      totalCarbs: acc.totalCarbs + meal.carbs,
-      totalSugar: acc.totalSugar + meal['added sugar'],
-      totalFat: acc.totalFat + meal.fat,
-      totalFiber: acc.totalFiber + meal.fiber,
+      totalCalories: acc.totalCalories + (meal.calories || 0),
+      totalProtein: acc.totalProtein + (meal.protein || 0),
+      totalCarbs: acc.totalCarbs + (meal.carbs || 0),
+      totalSugar: acc.totalSugar + (meal['added sugar'] || 0),
+      totalFat: acc.totalFat + (meal.fat || 0),
+      totalFiber: acc.totalFiber + (meal.fiber || 0),
     }),
     {
       totalCalories: 0,

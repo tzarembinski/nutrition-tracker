@@ -24,13 +24,16 @@ export default function SummaryCard({
   color = 'blue',
   benchmark,
 }: SummaryCardProps) {
+  // Handle NaN or undefined values gracefully
+  const displayValue = isNaN(value) || value === undefined || value === null ? 0 : value;
+
   return (
     <div className={`${colorClasses[color]} border rounded-lg p-4 shadow-sm`}>
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium opacity-80">{title}</p>
           <p className="text-2xl font-bold mt-1">
-            {value.toLocaleString()}
+            {displayValue.toLocaleString()}
             {unit && <span className="text-lg ml-1">{unit}</span>}
           </p>
           {benchmark && (
