@@ -1,3 +1,7 @@
+'use client';
+
+import { useState } from 'react';
+
 interface SummaryCardProps {
   title: string;
   value: number;
@@ -5,6 +9,7 @@ interface SummaryCardProps {
   icon?: React.ReactNode;
   color?: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'yellow';
   benchmark?: string;
+  dailyLimit?: number; // Daily limit for this nutrient
 }
 
 const colorClasses = {
@@ -23,12 +28,41 @@ export default function SummaryCard({
   icon,
   color = 'blue',
   benchmark,
+  dailyLimit,
 }: SummaryCardProps) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
   // Handle NaN or undefined values gracefully
   const displayValue = isNaN(value) || value === undefined || value === null ? 0 : value;
 
+  // Calculate percentage if dailyLimit is provided
+  const percentage = dailyLimit ? Math.round((displayValue / dailyLimit) * 100) : null;
+
   return (
-    <div className={`${colorClasses[color]} border rounded-lg p-4 shadow-sm`}>
+    <div
+      className={`${colorClasses[color]} border rounded-lg p-4 shadow-sm relative`}
+      onMouseEnter={() => dailyLimit && setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      {/* Tooltip */}
+      {showTooltip && dailyLimit && (
+        <div className="absolute z-10 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg whitespace-nowrap">
+          <div className="text-center">
+            <div className="font-semibold">{title}</div>
+            <div className="mt-1">
+              {displayValue.toLocaleString()}{unit} / {dailyLimit.toLocaleString()}{unit}
+              {percentage !== null && (
+                <span className="ml-1">({percentage}%)</span>
+              )}
+            </div>
+          </div>
+          {/* Arrow */}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+            <div className="border-8 border-transparent border-t-gray-900"></div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium opacity-80">{title}</p>

@@ -14,6 +14,7 @@ import {
   calculateBenchmark,
   formatBenchmarkLabel,
   calculateDaysInRange,
+  DAILY_BENCHMARKS,
 } from '@/lib/benchmarks';
 import MealForm from '@/components/MealForm';
 import MealList from '@/components/MealList';
@@ -49,6 +50,17 @@ export default function Home() {
 
     storageUtils.saveMeal(newMeal);
     setMeals([...meals, newMeal]);
+    setActiveTab('list');
+  };
+
+  const handleBatchAddMeals = (mealsData: Omit<MealEntry, 'id'>[]) => {
+    const newMeals: MealEntry[] = mealsData.map(mealData => ({
+      ...mealData,
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+    }));
+
+    newMeals.forEach(meal => storageUtils.saveMeal(meal));
+    setMeals([...meals, ...newMeals]);
     setActiveTab('list');
   };
 
@@ -125,6 +137,7 @@ export default function Home() {
               value={summary.totalCalories}
               color="blue"
               benchmark={benchmarks.calories}
+              dailyLimit={DAILY_BENCHMARKS.calories * numberOfDays}
             />
             <SummaryCard
               title="Total Protein"
@@ -132,6 +145,7 @@ export default function Home() {
               unit="g"
               color="green"
               benchmark={benchmarks.protein}
+              dailyLimit={DAILY_BENCHMARKS.protein * numberOfDays}
             />
             <SummaryCard
               title="Total Carbs"
@@ -139,6 +153,7 @@ export default function Home() {
               unit="g"
               color="orange"
               benchmark={benchmarks.carbohydrates}
+              dailyLimit={DAILY_BENCHMARKS.carbohydrates * numberOfDays}
             />
             <SummaryCard
               title="Total Fat"
@@ -146,6 +161,7 @@ export default function Home() {
               unit="g"
               color="red"
               benchmark={benchmarks.fat}
+              dailyLimit={DAILY_BENCHMARKS.fat * numberOfDays}
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -155,6 +171,7 @@ export default function Home() {
               unit="g"
               color="yellow"
               benchmark={benchmarks.addedSugar}
+              dailyLimit={DAILY_BENCHMARKS.addedSugar * numberOfDays}
             />
             <SummaryCard
               title="Total Fiber"
@@ -162,6 +179,7 @@ export default function Home() {
               unit="g"
               color="purple"
               benchmark={benchmarks.fiber}
+              dailyLimit={DAILY_BENCHMARKS.fiber * numberOfDays}
             />
             <SummaryCard title="Avg Calories/Meal" value={summary.avgCalories} color="blue" />
             <SummaryCard title="Total Meals" value={summary.mealCount} color="green" />
@@ -215,6 +233,7 @@ export default function Home() {
             </h2>
             <MealForm
               onSubmit={editingMeal ? handleUpdateMeal : handleAddMeal}
+              onBatchSubmit={!editingMeal ? handleBatchAddMeals : undefined}
               initialData={editingMeal || undefined}
               onCancel={editingMeal ? () => setEditingMeal(null) : undefined}
             />

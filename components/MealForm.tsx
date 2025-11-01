@@ -6,26 +6,48 @@ import { format } from 'date-fns';
 
 interface MealFormProps {
   onSubmit: (meal: Omit<MealEntry, 'id'>) => void;
+  onBatchSubmit?: (meals: Omit<MealEntry, 'id'>[]) => void;
   initialData?: MealEntry;
   onCancel?: () => void;
 }
 
-export default function MealForm({ onSubmit, initialData, onCancel }: MealFormProps) {
-  const [jsonInput, setJsonInput] = useState('');
+export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCancel }: MealFormProps) {
+  // Pre-fill JSON input with initialData if editing
+  const getInitialJsonInput = () => {
+    if (!initialData) return '';
+
+    // Convert date from yyyy-MM-dd to MM/DD/YY
+    const dateParts = initialData.date.split('-');
+    const formattedDate = `${dateParts[1]}/${dateParts[2]}/${dateParts[0].slice(2)}`;
+
+    return JSON.stringify({
+      date: formattedDate,
+      meal_type: initialData.mealType,
+      calories: initialData.calories,
+      protein: initialData.protein,
+      carbs: initialData.carbs,
+      'added sugar': initialData['added sugar'],
+      fat: initialData.fat,
+      fiber: initialData.fiber,
+      ...(initialData.notes && { notes: initialData.notes })
+    }, null, 2);
+  };
+
+  const [jsonInput, setJsonInput] = useState(getInitialJsonInput());
   const [mealType, setMealType] = useState<MealType>(initialData?.mealType || 'other');
   const [selectedDate, setSelectedDate] = useState(initialData?.date || format(new Date(), 'yyyy-MM-dd'));
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [useManualEntry, setUseManualEntry] = useState(false);
+  const [useManualEntry, setUseManualEntry] = useState(!!initialData); // Default to manual entry when editing
 
-  // Manual entry fields
-  const [manualCalories, setManualCalories] = useState('');
-  const [manualProtein, setManualProtein] = useState('');
-  const [manualCarbs, setManualCarbs] = useState('');
-  const [manualSugar, setManualSugar] = useState('');
-  const [manualFat, setManualFat] = useState('');
-  const [manualFiber, setManualFiber] = useState('');
-  const [manualNotes, setManualNotes] = useState('');
+  // Manual entry fields - pre-fill with initialData if editing
+  const [manualCalories, setManualCalories] = useState(initialData?.calories.toString() || '');
+  const [manualProtein, setManualProtein] = useState(initialData?.protein.toString() || '');
+  const [manualCarbs, setManualCarbs] = useState(initialData?.carbs.toString() || '');
+  const [manualSugar, setManualSugar] = useState(initialData?.['added sugar'].toString() || '');
+  const [manualFat, setManualFat] = useState(initialData?.fat.toString() || '');
+  const [manualFiber, setManualFiber] = useState(initialData?.fiber.toString() || '');
+  const [manualNotes, setManualNotes] = useState(initialData?.notes || '');
 
   const decodeIfNeeded = (text: string): string => {
     // Remove "said:" prefix and any text before it (case-insensitive)
@@ -43,12 +65,35 @@ export default function MealForm({ onSubmit, initialData, onCancel }: MealFormPr
     return text;
   };
 
+  // Convert MM/DD/YY to yyyy-MM-dd
+  const convertDateFormat = (dateStr: string): string | null => {
+    const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+    if (!match) return null;
+
+    const [, month, day, year] = match;
+    const fullYear = parseInt(year) >= 50 ? `19${year}` : `20${year}`;
+    const paddedMonth = month.padStart(2, '0');
+    const paddedDay = day.padStart(2, '0');
+
+    return `${fullYear}-${paddedMonth}-${paddedDay}`;
+  };
+
+  // Validate meal type
+  const isValidMealType = (type: string): type is MealType => {
+    return ['breakfast', 'lunch', 'dinner', 'snack', 'other'].includes(type);
+  };
+
   const validateAndParse = (jsonString: string): Omit<MealEntry, 'id'> | null => {
     try {
       // Decode URL-encoded content if needed (for iPhone paste)
       const decodedString = decodeIfNeeded(jsonString);
       const parsed = JSON.parse(decodedString);
       const errors: string[] = [];
+
+      // Normalize field names - accept both "added sugar" and "added_sugar"
+      if ('added_sugar' in parsed && !('added sugar' in parsed)) {
+        parsed['added sugar'] = parsed['added_sugar'];
+      }
 
       // Required fields
       const requiredFields = ['calories', 'protein', 'carbs', 'added sugar', 'fat', 'fiber'];
@@ -83,9 +128,34 @@ export default function MealForm({ onSubmit, initialData, onCancel }: MealFormPr
         return null;
       }
 
+      // Parse and validate date if provided in JSON
+      let mealDate = selectedDate;
+      if (parsed.date) {
+        const convertedDate = convertDateFormat(parsed.date);
+        if (!convertedDate) {
+          setError(`Invalid date format: ${parsed.date}. Expected format: MM/DD/YY (e.g., 10/31/24)`);
+          return null;
+        }
+        mealDate = convertedDate;
+        // Auto-populate the date field
+        setSelectedDate(convertedDate);
+      }
+
+      // Parse and validate meal_type if provided in JSON
+      let mealTypeValue = mealType;
+      if (parsed.meal_type) {
+        if (!isValidMealType(parsed.meal_type)) {
+          setError(`Invalid meal_type: ${parsed.meal_type}. Must be one of: breakfast, lunch, dinner, snack, other`);
+          return null;
+        }
+        mealTypeValue = parsed.meal_type;
+        // Auto-populate the meal type field
+        setMealType(parsed.meal_type);
+      }
+
       return {
-        date: selectedDate,
-        mealType: mealType,
+        date: mealDate,
+        mealType: mealTypeValue,
         calories: parsed.calories,
         protein: parsed.protein,
         carbs: parsed.carbs,
@@ -95,7 +165,145 @@ export default function MealForm({ onSubmit, initialData, onCancel }: MealFormPr
         notes: parsed.notes,
       };
     } catch (e) {
-      setError(`Invalid JSON format. Please check your input and try again.\n\nTip: Copy only the JSON data (starting with { and ending with })\n\nExpected format:\n{\n  "calories": 850,\n  "protein": 55,\n  "carbs": 85,\n  "added sugar": 12,\n  "fat": 30,\n  "fiber": 8,\n  "notes": "Meal description"\n}`);
+      setError(`Invalid JSON format. Please check your input and try again.\n\nTip: Copy only the JSON data (starting with { and ending with })\n\nExpected format:\n{\n  "date": "10/31/24",\n  "meal_type": "breakfast",\n  "calories": 850,\n  "protein": 55,\n  "carbs": 85,\n  "added_sugar": 12,\n  "fat": 30,\n  "fiber": 8,\n  "notes": "Meal description"\n}`);
+      return null;
+    }
+  };
+
+  // Parse and validate batch JSON input (multiple meals)
+  const validateAndParseBatch = (jsonString: string): Omit<MealEntry, 'id'>[] | null => {
+    try {
+      const decodedString = decodeIfNeeded(jsonString);
+
+      // Replace smart quotes with straight quotes (common issue when copying from some sources)
+      const cleanedString = decodedString
+        .replace(/[\u201C\u201D]/g, '"')  // Replace curly double quotes
+        .replace(/[\u2018\u2019]/g, "'"); // Replace curly single quotes
+
+      let parsed;
+
+      // Try to parse as array first
+      try {
+        parsed = JSON.parse(cleanedString);
+      } catch (parseError) {
+        // If direct parse fails, try to split by } {
+        console.log('[Debug] JSON parse failed, trying to split:', parseError);
+        // If that fails, try to split by } { and parse individually
+        const jsonObjects = cleanedString
+          .trim()
+          .split(/}\s*{/)
+          .map((obj, idx, arr) => {
+            if (idx === 0 && idx === arr.length - 1) return obj;
+            if (idx === 0) return obj + '}';
+            if (idx === arr.length - 1) return '{' + obj;
+            return '{' + obj + '}';
+          });
+
+        if (jsonObjects.length > 1) {
+          parsed = jsonObjects.map(obj => JSON.parse(obj));
+        } else {
+          throw new Error('Invalid JSON');
+        }
+      }
+
+      // Ensure parsed is an array
+      const mealsArray = Array.isArray(parsed) ? parsed : [parsed];
+
+      // Validate batch size
+      if (mealsArray.length > 10) {
+        setError(`Too many meals: ${mealsArray.length}. Maximum is 10 meals per upload.`);
+        return null;
+      }
+
+      if (mealsArray.length === 0) {
+        setError('No meal data found in the input.');
+        return null;
+      }
+
+      // Validate each meal
+      const validatedMeals: Omit<MealEntry, 'id'>[] = [];
+
+      for (let i = 0; i < mealsArray.length; i++) {
+        const parsed = mealsArray[i];
+        const mealNumber = mealsArray.length > 1 ? ` (Meal ${i + 1})` : '';
+
+        // Normalize field names - accept both "added sugar" and "added_sugar"
+        if ('added_sugar' in parsed && !('added sugar' in parsed)) {
+          parsed['added sugar'] = parsed['added_sugar'];
+        }
+
+        // Required fields
+        const requiredFields = ['calories', 'protein', 'carbs', 'added sugar', 'fat', 'fiber'];
+        const missingFields = requiredFields.filter(field => !(field in parsed));
+
+        if (missingFields.length > 0) {
+          setError(`Missing required fields${mealNumber}: ${missingFields.join(', ')}`);
+          return null;
+        }
+
+        // Validate numeric fields
+        const numericFields = ['calories', 'protein', 'carbs', 'added sugar', 'fat', 'fiber'];
+        for (const field of numericFields) {
+          const value = parsed[field];
+          if (typeof value !== 'number' || isNaN(value)) {
+            setError(`Invalid number for ${field}${mealNumber}: must be a valid number`);
+            return null;
+          }
+          if (value < 0) {
+            setError(`Invalid number for ${field}${mealNumber}: must be a positive number`);
+            return null;
+          }
+          if (value >= 10000) {
+            setError(`Invalid number for ${field}${mealNumber}: must be less than 10,000`);
+            return null;
+          }
+        }
+
+        // Optional notes field
+        if (parsed.notes !== undefined && typeof parsed.notes !== 'string') {
+          setError(`Notes must be a string${mealNumber}`);
+          return null;
+        }
+
+        // Parse and validate date if provided in JSON
+        let mealDate = selectedDate;
+        if (parsed.date) {
+          const convertedDate = convertDateFormat(parsed.date);
+          if (!convertedDate) {
+            setError(`Invalid date format${mealNumber}: ${parsed.date}. Expected format: MM/DD/YY (e.g., 10/31/24)`);
+            return null;
+          }
+          mealDate = convertedDate;
+        }
+
+        // Parse and validate meal_type if provided in JSON
+        let mealTypeValue = mealType;
+        if (parsed.meal_type) {
+          if (!isValidMealType(parsed.meal_type)) {
+            setError(`Invalid meal_type${mealNumber}: ${parsed.meal_type}. Must be one of: breakfast, lunch, dinner, snack, other`);
+            return null;
+          }
+          mealTypeValue = parsed.meal_type;
+        }
+
+        validatedMeals.push({
+          date: mealDate,
+          mealType: mealTypeValue,
+          calories: parsed.calories,
+          protein: parsed.protein,
+          carbs: parsed.carbs,
+          'added sugar': parsed['added sugar'],
+          fat: parsed.fat,
+          fiber: parsed.fiber,
+          notes: parsed.notes,
+        });
+      }
+
+      return validatedMeals;
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      console.error('[Debug] Validation error:', errorMsg);
+      setError(`Invalid JSON format. ${errorMsg}\n\nPlease check your input and try again.\n\nFor single meal:\n{\n  "date": "10/31/24",\n  "meal_type": "breakfast",\n  "calories": 850,\n  "protein": 55,\n  "carbs": 85,\n  "added_sugar": 12,\n  "fat": 30,\n  "fiber": 8,\n  "notes": "Meal description"\n}\n\nFor multiple meals, use an array:\n[\n  {...meal1...},\n  {...meal2...}\n]`);
       return null;
     }
   };
@@ -155,41 +363,32 @@ export default function MealForm({ onSubmit, initialData, onCancel }: MealFormPr
     setError('');
     setSuccess('');
 
-    // Validate date
-    const mealDate = new Date(selectedDate);
-    const today = new Date();
-    today.setHours(23, 59, 59, 999); // Set to end of today for comparison
-
-    if (mealDate > today) {
-      setError('Meal date cannot be in the future. Please select today or an earlier date.');
-      return;
-    }
-
-    const minDate = new Date('1900-01-01');
-    if (mealDate < minDate) {
-      setError('Meal date must be after January 1, 1900.');
-      return;
-    }
-
-    let parsedData: Omit<MealEntry, 'id'> | null;
-
     if (useManualEntry) {
-      parsedData = validateManualEntry();
-    } else {
-      parsedData = validateAndParse(jsonInput);
-    }
+      // Manual entry - validate date first
+      const mealDate = new Date(selectedDate);
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
 
-    if (!parsedData) {
-      return;
-    }
+      if (mealDate > today) {
+        setError('Meal date cannot be in the future. Please select today or an earlier date.');
+        return;
+      }
 
-    onSubmit(parsedData);
+      const minDate = new Date('1900-01-01');
+      if (mealDate < minDate) {
+        setError('Meal date must be after January 1, 1900.');
+        return;
+      }
 
-    // Show success message with values
-    setSuccess(`Entry saved successfully!\nCalories: ${parsedData.calories}\nProtein: ${parsedData.protein}g\nCarbs: ${parsedData.carbs}g\nAdded Sugar: ${parsedData['added sugar']}g\nFat: ${parsedData.fat}g\nFiber: ${parsedData.fiber}g${parsedData.notes ? `\nNotes: ${parsedData.notes}` : ''}`);
+      const parsedData = validateManualEntry();
+      if (!parsedData) return;
 
-    // Clear form
-    if (useManualEntry) {
+      onSubmit(parsedData);
+
+      // Show success message
+      setSuccess(`Entry saved successfully!\nCalories: ${parsedData.calories}\nProtein: ${parsedData.protein}g\nCarbs: ${parsedData.carbs}g\nAdded Sugar: ${parsedData['added sugar']}g\nFat: ${parsedData.fat}g\nFiber: ${parsedData.fiber}g${parsedData.notes ? `\nNotes: ${parsedData.notes}` : ''}`);
+
+      // Clear form
       setManualCalories('');
       setManualProtein('');
       setManualCarbs('');
@@ -198,6 +397,46 @@ export default function MealForm({ onSubmit, initialData, onCancel }: MealFormPr
       setManualFiber('');
       setManualNotes('');
     } else {
+      // JSON entry - use batch validator
+      const parsedMeals = validateAndParseBatch(jsonInput);
+      if (!parsedMeals) return;
+
+      // Validate dates for all meals
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      const minDate = new Date('1900-01-01');
+
+      for (let i = 0; i < parsedMeals.length; i++) {
+        const mealDate = new Date(parsedMeals[i].date);
+        const mealNumber = parsedMeals.length > 1 ? ` (Meal ${i + 1})` : '';
+
+        if (mealDate > today) {
+          setError(`Meal date cannot be in the future${mealNumber}. Please use today or an earlier date.`);
+          return;
+        }
+
+        if (mealDate < minDate) {
+          setError(`Meal date must be after January 1, 1900${mealNumber}.`);
+          return;
+        }
+      }
+
+      // If single meal, use onSubmit; if multiple, use onBatchSubmit if available
+      if (parsedMeals.length === 1) {
+        onSubmit(parsedMeals[0]);
+        setSuccess(`Entry saved successfully!\nCalories: ${parsedMeals[0].calories}\nProtein: ${parsedMeals[0].protein}g\nCarbs: ${parsedMeals[0].carbs}g\nAdded Sugar: ${parsedMeals[0]['added sugar']}g\nFat: ${parsedMeals[0].fat}g\nFiber: ${parsedMeals[0].fiber}g${parsedMeals[0].notes ? `\nNotes: ${parsedMeals[0].notes}` : ''}`);
+      } else {
+        // Multiple meals
+        if (onBatchSubmit) {
+          onBatchSubmit(parsedMeals);
+        } else {
+          // Fallback: submit each meal individually
+          parsedMeals.forEach(meal => onSubmit(meal));
+        }
+        setSuccess(`${parsedMeals.length} entries saved successfully!`);
+      }
+
+      // Clear form
       setJsonInput('');
     }
   };
@@ -300,7 +539,7 @@ export default function MealForm({ onSubmit, initialData, onCancel }: MealFormPr
             setSuccess('');
           }}
           rows={12}
-          placeholder='Paste JSON nutrition data here&#10;&#10;Example:&#10;{&#10;  "calories": 850,&#10;  "protein": 55,&#10;  "carbs": 85,&#10;  "added sugar": 12,&#10;  "fat": 30,&#10;  "fiber": 8,&#10;  "notes": "Meal description"&#10;}'
+          placeholder='Paste JSON nutrition data here&#10;&#10;Single meal:&#10;{&#10;  "date": "10/31/24",&#10;  "meal_type": "breakfast",&#10;  "calories": 850,&#10;  "protein": 55,&#10;  "carbs": 85,&#10;  "added_sugar": 12,&#10;  "fat": 30,&#10;  "fiber": 8,&#10;  "notes": "Meal description"&#10;}&#10;&#10;Note: You can use "added_sugar" or "added sugar"&#10;Multiple meals (up to 10): [{...}, {...}]'
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono text-sm"
         />
         </div>
