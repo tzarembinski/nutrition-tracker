@@ -37,6 +37,7 @@ export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCance
   const [mealType, setMealType] = useState<MealType>(initialData?.mealType || 'other');
   const [selectedDate, setSelectedDate] = useState(initialData?.date || format(new Date(), 'yyyy-MM-dd'));
   const [error, setError] = useState('');
+  const [warning, setWarning] = useState('');
   const [success, setSuccess] = useState('');
   const [useManualEntry, setUseManualEntry] = useState(!!initialData); // Default to manual entry when editing
 
@@ -361,27 +362,30 @@ export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCance
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setWarning('');
     setSuccess('');
 
     if (useManualEntry) {
-      // Manual entry - validate date first
-      const mealDate = new Date(selectedDate);
-      const today = new Date();
-      today.setHours(23, 59, 59, 999);
-
-      if (mealDate > today) {
-        setError('Meal date cannot be in the future. Please select today or an earlier date.');
-        return;
-      }
-
-      const minDate = new Date('1900-01-01');
-      if (mealDate < minDate) {
-        setError('Meal date must be after January 1, 1900.');
-        return;
-      }
-
+      // Manual entry - validate first
       const parsedData = validateManualEntry();
       if (!parsedData) return;
+
+      // Check date and show warnings (non-blocking)
+      const today = new Date();
+      const todayString = format(today, 'yyyy-MM-dd');
+
+      // Compare date strings to avoid timezone issues
+      if (selectedDate > todayString) {
+        setWarning('⚠️ Date is in the future. You can still proceed, but please verify the date is correct.');
+      } else {
+        // Check if date is from a previous month
+        const firstDayOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const firstDayString = format(firstDayOfCurrentMonth, 'yyyy-MM-dd');
+
+        if (selectedDate < firstDayString) {
+          setWarning('⚠️ Date is from a previous month. You can still proceed, but please verify the date is correct.');
+        }
+      }
 
       onSubmit(parsedData);
 
@@ -401,24 +405,35 @@ export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCance
       const parsedMeals = validateAndParseBatch(jsonInput);
       if (!parsedMeals) return;
 
-      // Validate dates for all meals
+      // Check dates for all meals and show warnings (non-blocking)
       const today = new Date();
-      today.setHours(23, 59, 59, 999);
-      const minDate = new Date('1900-01-01');
+      const todayString = format(today, 'yyyy-MM-dd');
+      const firstDayOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const firstDayString = format(firstDayOfCurrentMonth, 'yyyy-MM-dd');
+
+      let hasFutureDate = false;
+      let hasOldDate = false;
 
       for (let i = 0; i < parsedMeals.length; i++) {
-        const mealDate = new Date(parsedMeals[i].date);
-        const mealNumber = parsedMeals.length > 1 ? ` (Meal ${i + 1})` : '';
+        const mealDateString = parsedMeals[i].date;
 
-        if (mealDate > today) {
-          setError(`Meal date cannot be in the future${mealNumber}. Please use today or an earlier date.`);
-          return;
+        // Compare date strings to avoid timezone issues
+        if (mealDateString > todayString) {
+          hasFutureDate = true;
         }
 
-        if (mealDate < minDate) {
-          setError(`Meal date must be after January 1, 1900${mealNumber}.`);
-          return;
+        if (mealDateString < firstDayString) {
+          hasOldDate = true;
         }
+      }
+
+      // Set appropriate warning message
+      if (hasFutureDate && hasOldDate) {
+        setWarning('⚠️ Some dates are in the future and some are from previous months. You can still proceed, but please verify all dates are correct.');
+      } else if (hasFutureDate) {
+        setWarning('⚠️ One or more dates are in the future. You can still proceed, but please verify the dates are correct.');
+      } else if (hasOldDate) {
+        setWarning('⚠️ One or more dates are from a previous month. You can still proceed, but please verify the dates are correct.');
       }
 
       // If single meal, use onSubmit; if multiple, use onBatchSubmit if available
@@ -457,6 +472,7 @@ export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCance
     setMealType('other');
     setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
     setError('');
+    setWarning('');
     setSuccess('');
   };
 
@@ -474,9 +490,9 @@ export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCance
             onChange={(e) => {
               setSelectedDate(e.target.value);
               setError('');
+              setWarning('');
               setSuccess('');
             }}
-            max={format(new Date(), 'yyyy-MM-dd')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
@@ -536,6 +552,7 @@ export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCance
           onChange={(e) => {
             setJsonInput(e.target.value);
             setError('');
+            setWarning('');
             setSuccess('');
           }}
           rows={12}
@@ -557,6 +574,7 @@ export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCance
                 onChange={(e) => {
                   setManualCalories(e.target.value);
                   setError('');
+                  setWarning('');
                   setSuccess('');
                 }}
                 step="0.1"
@@ -576,6 +594,7 @@ export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCance
                 onChange={(e) => {
                   setManualProtein(e.target.value);
                   setError('');
+                  setWarning('');
                   setSuccess('');
                 }}
                 step="0.1"
@@ -598,6 +617,7 @@ export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCance
                 onChange={(e) => {
                   setManualCarbs(e.target.value);
                   setError('');
+                  setWarning('');
                   setSuccess('');
                 }}
                 step="0.1"
@@ -617,6 +637,7 @@ export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCance
                 onChange={(e) => {
                   setManualSugar(e.target.value);
                   setError('');
+                  setWarning('');
                   setSuccess('');
                 }}
                 step="0.1"
@@ -639,6 +660,7 @@ export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCance
                 onChange={(e) => {
                   setManualFat(e.target.value);
                   setError('');
+                  setWarning('');
                   setSuccess('');
                 }}
                 step="0.1"
@@ -658,6 +680,7 @@ export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCance
                 onChange={(e) => {
                   setManualFiber(e.target.value);
                   setError('');
+                  setWarning('');
                   setSuccess('');
                 }}
                 step="0.1"
@@ -678,6 +701,7 @@ export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCance
               onChange={(e) => {
                 setManualNotes(e.target.value);
                 setError('');
+                setWarning('');
                 setSuccess('');
               }}
               rows={3}
@@ -691,6 +715,12 @@ export default function MealForm({ onSubmit, onBatchSubmit, initialData, onCance
       {error && (
         <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded whitespace-pre-wrap">
           {error}
+        </div>
+      )}
+
+      {warning && (
+        <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 px-4 py-3 rounded whitespace-pre-wrap">
+          {warning}
         </div>
       )}
 
