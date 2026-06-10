@@ -1,9 +1,11 @@
 'use client';
 
-import { DailySummary } from '@/lib/types';
+import { DailySummary, DailyLog } from '@/lib/types';
 import {
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -17,9 +19,10 @@ import { DAILY_BENCHMARKS } from '@/lib/benchmarks';
 
 interface NutritionChartProps {
   data: DailySummary[];
+  dailyLogs?: DailyLog[];
 }
 
-export default function NutritionChart({ data }: NutritionChartProps) {
+export default function NutritionChart({ data, dailyLogs = [] }: NutritionChartProps) {
   if (data.length === 0) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-md">
@@ -40,6 +43,15 @@ export default function NutritionChart({ data }: NutritionChartProps) {
       Fat: day.fat,
       Fiber: day.fiber,
       Calories: day.calories,
+    }));
+
+  const logChartData = [...dailyLogs]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-14)
+    .map(log => ({
+      date: format(parseISO(log.date), 'MMM dd'),
+      Bodyweight: log.bodyweight,
+      Stress: log.stress,
     }));
 
   const MacrosTooltip = ({ active, payload, label }: any) => {
@@ -155,6 +167,54 @@ export default function NutritionChart({ data }: NutritionChartProps) {
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Bodyweight & Stress Trends */}
+      {logChartData.length > 0 && (
+        <>
+          <div className="bg-white p-6 rounded-lg shadow-md mt-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Bodyweight Trend (lbs)</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={logChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis domain={['auto', 'auto']} />
+                <Tooltip formatter={(v: number) => [`${v} lbs`, 'Bodyweight']} />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="Bodyweight"
+                  stroke="#6366f1"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md mt-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Stress Level Trend</h3>
+            <p className="text-xs text-gray-500 mb-3">1 = Low, 2 = Medium, 3 = High</p>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={logChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis domain={[0.5, 3.5]} ticks={[1, 2, 3]} />
+                <Tooltip formatter={(v: number) => [v === 1 ? '1 — Low' : v === 2 ? '2 — Medium' : '3 — High', 'Stress']} />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="Stress"
+                  stroke="#f43f5e"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
     </>
   );
 }

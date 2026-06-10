@@ -1,6 +1,7 @@
-import { MealEntry } from './types';
+import { MealEntry, DailyLog } from './types';
 
 const STORAGE_KEY = 'nutrition-tracker-meals';
+const DAILY_LOG_KEY = 'nutrition-tracker-daily-logs';
 
 export const storageUtils = {
   // Get all meal entries from localStorage
@@ -103,6 +104,44 @@ export const storageUtils = {
       console.log(`[Storage] Cleared all data. Removed ${mealCount} meal(s)`);
     } catch (error) {
       console.error('[Storage] Error clearing localStorage:', error);
+    }
+  },
+};
+
+export const dailyLogStorage = {
+  getAll: (): DailyLog[] => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const data = localStorage.getItem(DAILY_LOG_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  save: (log: DailyLog): void => {
+    if (typeof window === 'undefined') return;
+    try {
+      const logs = dailyLogStorage.getAll();
+      const existing = logs.findIndex(l => l.date === log.date);
+      if (existing !== -1) {
+        logs[existing] = log;
+      } else {
+        logs.push(log);
+      }
+      localStorage.setItem(DAILY_LOG_KEY, JSON.stringify(logs));
+    } catch (error) {
+      console.error('[Storage] Error saving daily log:', error);
+    }
+  },
+
+  delete: (id: string): void => {
+    if (typeof window === 'undefined') return;
+    try {
+      const logs = dailyLogStorage.getAll().filter(l => l.id !== id);
+      localStorage.setItem(DAILY_LOG_KEY, JSON.stringify(logs));
+    } catch (error) {
+      console.error('[Storage] Error deleting daily log:', error);
     }
   },
 };

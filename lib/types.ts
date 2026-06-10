@@ -41,3 +41,14 @@ export interface FilterOptions {
   mealType?: MealType | 'all';
   searchTerm?: string;
 }
+
+export type WorkoutLevel = 'none' | 'easy' | 'medium' | 'hard';
+
+export interface DailyLog {
+  id: string;
+  date: string;
+  workout: WorkoutLevel;
+  bodyweight: number;
+  stress: 1 | 2 | 3;
+  notes?: string;
+}

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MealEntry, FilterOptions } from '@/lib/types';
-import { storageUtils } from '@/lib/storage';
+import { MealEntry, FilterOptions, DailyLog } from '@/lib/types';
+import { storageUtils, dailyLogStorage } from '@/lib/storage';
 import {
   calculateSummary,
   getDailySummaries,
@@ -21,19 +21,24 @@ import MealList from '@/components/MealList';
 import SummaryCard from '@/components/SummaryCard';
 import FilterBar from '@/components/FilterBar';
 import NutritionChart from '@/components/NutritionChart';
+import DailyLogForm from '@/components/DailyLogForm';
+import DailyLogList from '@/components/DailyLogList';
 
 export default function Home() {
   const [meals, setMeals] = useState<MealEntry[]>([]);
   const [filteredMeals, setFilteredMeals] = useState<MealEntry[]>([]);
   const [filters, setFilters] = useState<FilterOptions>({ mealType: 'all' });
   const [editingMeal, setEditingMeal] = useState<MealEntry | null>(null);
-  const [activeTab, setActiveTab] = useState<'add' | 'list' | 'analytics'>('add');
+  const [activeTab, setActiveTab] = useState<'add' | 'list' | 'analytics' | 'dailylog'>('add');
+  const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
+  const [editingLog, setEditingLog] = useState<DailyLog | null>(null);
 
-  // Load meals from localStorage on mount
+  // Load meals and daily logs from localStorage on mount
   useEffect(() => {
     const loadedMeals = storageUtils.getAllMeals();
     setMeals(loadedMeals);
     setFilteredMeals(loadedMeals);
+    setDailyLogs(dailyLogStorage.getAll());
   }, []);
 
   // Apply filters whenever meals or filters change
@@ -81,6 +86,19 @@ export default function Home() {
   const handleDeleteMeal = (id: string) => {
     storageUtils.deleteMeal(id);
     setMeals(meals.filter(m => m.id !== id));
+  };
+
+  const handleSaveDailyLog = (logData: Omit<DailyLog, 'id'>) => {
+    const id = editingLog?.id || Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const log: DailyLog = { ...logData, id };
+    dailyLogStorage.save(log);
+    setDailyLogs(dailyLogStorage.getAll());
+    setEditingLog(null);
+  };
+
+  const handleDeleteDailyLog = (id: string) => {
+    dailyLogStorage.delete(id);
+    setDailyLogs(prev => prev.filter(l => l.id !== id));
   };
 
   const handleExportCSV = () => {
@@ -222,6 +240,16 @@ export default function Home() {
             >
               Analytics
             </button>
+            <button
+              onClick={() => { setActiveTab('dailylog'); setEditingLog(null); }}
+              className={`pb-3 px-2 font-medium text-sm ${
+                activeTab === 'dailylog'
+                  ? 'border-b-2 border-primary-600 text-primary-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Daily Log ({dailyLogs.length})
+            </button>
           </nav>
         </div>
 
@@ -288,7 +316,7 @@ export default function Home() {
 
             {dailySummaries.length > 0 ? (
               <>
-                <NutritionChart data={dailySummaries} />
+                <NutritionChart data={dailySummaries} dailyLogs={dailyLogs} />
 
                 {/* Daily Breakdown Table */}
                 <div className="bg-white p-6 rounded-lg shadow-md">
@@ -356,6 +384,30 @@ export default function Home() {
           </div>
         )}
       </main>
+
+        {activeTab === 'dailylog' && (
+          <div className="max-w-4xl">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+              {editingLog ? 'Edit Daily Log' : 'Daily Log'}
+            </h2>
+            <p className="text-gray-500 text-sm mb-6">
+              One entry per day — log your workout, bodyweight, and stress level.
+            </p>
+            <DailyLogForm
+              onSubmit={handleSaveDailyLog}
+              initialData={editingLog || undefined}
+              onCancel={editingLog ? () => setEditingLog(null) : undefined}
+            />
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Log History</h3>
+              <DailyLogList
+                logs={[...dailyLogs].sort((a, b) => b.date.localeCompare(a.date))}
+                onEdit={log => setEditingLog(log)}
+                onDelete={handleDeleteDailyLog}
+              />
+            </div>
+          </div>
+        )}
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-12">
