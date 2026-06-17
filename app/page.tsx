@@ -182,7 +182,7 @@ export default function Home() {
               dailyLimit={DAILY_BENCHMARKS.fat * numberOfDays}
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <SummaryCard
               title="Added Sugar"
               value={summary.totalSugar}
@@ -201,6 +201,7 @@ export default function Home() {
             />
             <SummaryCard title="Avg Calories/Meal" value={summary.avgCalories} color="blue" />
             <SummaryCard title="Total Meals" value={summary.mealCount} color="green" />
+            <SummaryCard title="Daily Logs" value={dailyLogs.length} color="blue" />
           </div>
         </div>
 
