@@ -102,7 +102,7 @@ export default function Home() {
   };
 
   const handleExportCSV = () => {
-    const csvContent = exportToCSV(filteredMeals);
+    const csvContent = exportToCSV(filteredMeals, dailyLogs);
     downloadCSV(csvContent, `nutrition-data-${new Date().toISOString().split('T')[0]}.csv`);
   };
 

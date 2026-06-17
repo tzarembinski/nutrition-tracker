@@ -1,4 +1,4 @@
-import { MealEntry, NutritionSummary, DailySummary, FilterOptions } from './types';
+import { MealEntry, NutritionSummary, DailySummary, FilterOptions, DailyLog } from './types';
 import { startOfDay, endOfDay, isWithinInterval, parseISO } from 'date-fns';
 
 export const calculateSummary = (meals: MealEntry[]): NutritionSummary => {
@@ -103,7 +103,9 @@ export const filterMeals = (meals: MealEntry[], filters: FilterOptions): MealEnt
   });
 };
 
-export const exportToCSV = (meals: MealEntry[]): string => {
+export const exportToCSV = (meals: MealEntry[], dailyLogs: DailyLog[] = []): string => {
+  const logsByDate = new Map(dailyLogs.map(l => [l.date, l]));
+
   const headers = [
     'Date',
     'Meal Type',
@@ -114,19 +116,28 @@ export const exportToCSV = (meals: MealEntry[]): string => {
     'Fat (g)',
     'Fiber (g)',
     'Notes',
+    'Workout',
+    'Bodyweight (lbs)',
+    'Stress',
   ];
 
-  const rows = meals.map(meal => [
-    meal.date,
-    meal.mealType,
-    meal.calories.toString(),
-    meal.protein.toString(),
-    meal.carbs.toString(),
-    meal['added sugar'].toString(),
-    meal.fat.toString(),
-    meal.fiber.toString(),
-    meal.notes || '',
-  ]);
+  const rows = meals.map(meal => {
+    const log = logsByDate.get(meal.date);
+    return [
+      meal.date,
+      meal.mealType,
+      (meal.calories ?? 0).toString(),
+      (meal.protein ?? 0).toString(),
+      (meal.carbs ?? 0).toString(),
+      (meal['added sugar'] ?? meal['added_sugar' as keyof MealEntry] ?? 0).toString(),
+      (meal.fat ?? 0).toString(),
+      (meal.fiber ?? 0).toString(),
+      meal.notes || '',
+      log?.workout || '',
+      log?.bodyweight?.toString() || '',
+      log?.stress?.toString() || '',
+    ];
+  });
 
   const csvContent = [
     headers.join(','),
