@@ -201,7 +201,7 @@ export default function Home() {
             />
             <SummaryCard title="Avg Calories/Meal" value={summary.avgCalories} color="blue" />
             <SummaryCard title="Total Meals" value={summary.mealCount} color="green" />
-            <SummaryCard title="Daily Logs" value={dailyLogs.length} color="blue" />
+            <SummaryCard title="Daily Logs" value={dailyLogs.length} color="blue" benchmark="workout, bodyweight, stress level" />
           </div>
         </div>
 
