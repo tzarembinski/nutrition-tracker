@@ -106,33 +106,50 @@ export const filterMeals = (meals: MealEntry[], filters: FilterOptions): MealEnt
 export const exportToCSV = (meals: MealEntry[], dailyLogs: DailyLog[] = []): string => {
   const logsByDate = new Map(dailyLogs.map(l => [l.date, l]));
 
+  // Aggregate meals by date
+  const dailyMap = new Map<string, { calories: number; protein: number; carbs: number; sugar: number; fat: number; fiber: number; mealCount: number }>();
+  meals.forEach(meal => {
+    const existing = dailyMap.get(meal.date) ?? { calories: 0, protein: 0, carbs: 0, sugar: 0, fat: 0, fiber: 0, mealCount: 0 };
+    dailyMap.set(meal.date, {
+      calories: existing.calories + (meal.calories ?? 0),
+      protein: existing.protein + (meal.protein ?? 0),
+      carbs: existing.carbs + (meal.carbs ?? 0),
+      sugar: existing.sugar + (meal['added sugar'] ?? (meal as any)['added_sugar'] ?? 0),
+      fat: existing.fat + (meal.fat ?? 0),
+      fiber: existing.fiber + (meal.fiber ?? 0),
+      mealCount: existing.mealCount + 1,
+    });
+  });
+
+  // Collect all dates (from meals and daily logs), sorted
+  const allDates = Array.from(new Set([...dailyMap.keys(), ...logsByDate.keys()])).sort();
+
   const headers = [
     'Date',
-    'Meal Type',
+    'Meals',
     'Calories',
     'Protein (g)',
     'Carbs (g)',
     'Added Sugar (g)',
     'Fat (g)',
     'Fiber (g)',
-    'Notes',
     'Workout',
     'Bodyweight (lbs)',
     'Stress',
   ];
 
-  const rows = meals.map(meal => {
-    const log = logsByDate.get(meal.date);
+  const rows = allDates.map(date => {
+    const day = dailyMap.get(date);
+    const log = logsByDate.get(date);
     return [
-      meal.date,
-      meal.mealType,
-      (meal.calories ?? 0).toString(),
-      (meal.protein ?? 0).toString(),
-      (meal.carbs ?? 0).toString(),
-      (meal['added sugar'] ?? meal['added_sugar' as keyof MealEntry] ?? 0).toString(),
-      (meal.fat ?? 0).toString(),
-      (meal.fiber ?? 0).toString(),
-      meal.notes || '',
+      date,
+      day?.mealCount.toString() || '0',
+      day?.calories.toString() || '',
+      day?.protein.toString() || '',
+      day?.carbs.toString() || '',
+      day?.sugar.toString() || '',
+      day?.fat.toString() || '',
+      day?.fiber.toString() || '',
       log?.workout || '',
       log?.bodyweight?.toString() || '',
       log?.stress?.toString() || '',
