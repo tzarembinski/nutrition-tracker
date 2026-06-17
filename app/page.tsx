@@ -383,7 +383,6 @@ export default function Home() {
             )}
           </div>
         )}
-      </main>
 
         {activeTab === 'dailylog' && (
           <div className="max-w-4xl">
@@ -408,6 +407,7 @@ export default function Home() {
             </div>
           </div>
         )}
+      </main>
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-12">
