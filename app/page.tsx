@@ -235,6 +235,16 @@ export default function Home() {
               Add Meal
             </button>
             <button
+              onClick={() => { setActiveTab('dailylog'); setEditingLog(null); }}
+              className={`pb-3 px-2 font-medium text-sm ${
+                activeTab === 'dailylog'
+                  ? 'border-b-2 border-primary-600 text-primary-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Daily Log ({dailyLogs.length})
+            </button>
+            <button
               onClick={() => setActiveTab('list')}
               className={`pb-3 px-2 font-medium text-sm ${
                 activeTab === 'list'
@@ -253,16 +263,6 @@ export default function Home() {
               }`}
             >
               Analytics
-            </button>
-            <button
-              onClick={() => { setActiveTab('dailylog'); setEditingLog(null); }}
-              className={`pb-3 px-2 font-medium text-sm ${
-                activeTab === 'dailylog'
-                  ? 'border-b-2 border-primary-600 text-primary-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Daily Log ({dailyLogs.length})
             </button>
           </nav>
         </div>
