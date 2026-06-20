@@ -23,6 +23,48 @@ A modern, professional food tracking web application designed for athletes to ma
 - **Form Validation**: Comprehensive validation with helpful error messages
 - **Edit & Delete**: Full CRUD operations for meal entries
 
+## Version History
+
+### `v2` branch — current Vercel deployment (June 2026)
+**Why:** Extend beyond pure nutrition tracking to capture the full picture of daily health — training load, body composition, sleep, and stress — so all variables are in one place and exportable together.
+
+**What was added:**
+- **Daily Log tab** (second tab, right after Add Meal): one entry per day recording:
+  - Workout intensity: None / Easy / Medium / Hard
+  - Bodyweight in lbs
+  - Stress level: 1 (Low) / 2 (Medium) / 3 (High)
+  - Hours of sleep the previous night (4–10, whole hours dropdown — iPhone-friendly)
+  - Optional notes
+- **Daily Logs summary card** in the Overall Summary section showing entry count
+- **Analytics charts** for bodyweight, stress, and sleep trends (last 14 days), visible in the Analytics tab once daily log entries exist
+- **Export CSV** button moved from the Meal History tab to the Overall Summary header — always visible regardless of active tab
+- **CSV export** updated: one row per meal, with Workout / Bodyweight / Stress / Sleep / Log Notes appended as new columns on the right, joined by date from the daily log
+- **CSV crash fix**: defensive null handling for older meal entries that used `added_sugar` (underscore) instead of `added sugar` (space) as the field key
+
+**New files:** `components/DailyLogForm.tsx`, `components/DailyLogList.tsx`
+**Modified files:** `lib/types.ts`, `lib/storage.ts`, `lib/calculations.ts`, `app/page.tsx`, `components/NutritionChart.tsx`
+**Storage:** daily log entries stored in localStorage under key `nutrition-tracker-daily-logs` (separate from meals key, so no existing meal data is affected)
+
+---
+
+### `new-features-v1` branch — previous Vercel deployment
+**Why:** The original app only accepted one meal at a time with no date control and no data persistence on iPhone.
+
+**What was added:**
+- Date picker on meal entry (backfill historical data)
+- Meal type selection (Breakfast / Lunch / Dinner / Snack / Other)
+- Batch JSON upload (paste up to 10 meals at once from a customGPT output)
+- localStorage persistence (data survives page refresh, works on iPhone)
+- Benchmark/target lines on charts and % of daily target on summary cards
+- Bug fix: multiple meals on the same day no longer overwrite each other
+
+---
+
+### `master` branch — original version
+Basic nutrition entry form, no persistence, no date control, single meal at a time.
+
+---
+
 ## Getting Started
 
 ### Prerequisites
@@ -107,11 +149,13 @@ nutrition-tracker/
 │   ├── page.tsx            # Main dashboard page
 │   └── globals.css         # Global styles
 ├── components/
-│   ├── MealForm.tsx        # Meal entry form
+│   ├── MealForm.tsx        # Meal entry form (JSON paste + manual entry)
 │   ├── MealList.tsx        # Meal list display
 │   ├── SummaryCard.tsx     # Summary card component
 │   ├── FilterBar.tsx       # Filter controls
-│   └── NutritionChart.tsx  # Chart visualizations
+│   ├── NutritionChart.tsx  # Chart visualizations (nutrition + daily log trends)
+│   ├── DailyLogForm.tsx    # Daily log entry form (workout/bodyweight/stress/sleep)
+│   └── DailyLogList.tsx    # Daily log history list
 ├── lib/
 │   ├── types.ts            # TypeScript interfaces
 │   ├── storage.ts          # localStorage utilities
