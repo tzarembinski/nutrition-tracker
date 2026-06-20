@@ -35,6 +35,7 @@ export default function DailyLogForm({ onSubmit, initialData, onCancel }: DailyL
   const [workout, setWorkout] = useState<WorkoutLevel>(initialData?.workout || 'none');
   const [bodyweight, setBodyweight] = useState(initialData?.bodyweight.toString() || '');
   const [stress, setStress] = useState<1 | 2 | 3>(initialData?.stress || 1);
+  const [sleep, setSleep] = useState(initialData?.sleep?.toString() || '');
   const [notes, setNotes] = useState(initialData?.notes || '');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -55,11 +56,12 @@ export default function DailyLogForm({ onSubmit, initialData, onCancel }: DailyL
       return;
     }
 
-    onSubmit({ date: selectedDate, workout, bodyweight: weight, stress, notes: notes || undefined });
+    onSubmit({ date: selectedDate, workout, bodyweight: weight, stress, sleep: sleep ? parseFloat(sleep) : undefined, notes: notes || undefined });
     setSuccess('Daily log saved!');
 
     if (!initialData) {
       setBodyweight('');
+      setSleep('');
       setNotes('');
       setWorkout('none');
       setStress(1);
@@ -117,6 +119,24 @@ export default function DailyLogForm({ onSubmit, initialData, onCancel }: DailyL
           placeholder="175.5"
           className="w-full sm:w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
+      </div>
+
+      {/* Sleep */}
+      <div>
+        <label htmlFor="sleep" className="block text-sm font-medium text-gray-700 mb-1">
+          Sleep last night (hours)
+        </label>
+        <select
+          id="sleep"
+          value={sleep}
+          onChange={e => { setSleep(e.target.value); setError(''); setSuccess(''); }}
+          className="w-full sm:w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+        >
+          <option value="">— select —</option>
+          {[4, 5, 6, 7, 8, 9, 10].map(h => (
+            <option key={h} value={h}>{h} hrs</option>
+          ))}
+        </select>
       </div>
 
       {/* Stress */}

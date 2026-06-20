@@ -52,6 +52,7 @@ export default function NutritionChart({ data, dailyLogs = [] }: NutritionChartP
       date: format(parseISO(log.date), 'MMM dd'),
       Bodyweight: log.bodyweight,
       Stress: log.stress,
+      Sleep: log.sleep ?? null,
     }));
 
   const MacrosTooltip = ({ active, payload, label }: any) => {
@@ -209,6 +210,28 @@ export default function NutritionChart({ data, dailyLogs = [] }: NutritionChartP
                   strokeWidth={2}
                   dot={{ r: 4 }}
                   activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md mt-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Sleep Trend (hours)</h3>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={logChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis domain={[3, 11]} ticks={[4, 5, 6, 7, 8, 9, 10]} />
+                <Tooltip formatter={(v: number) => [`${v} hrs`, 'Sleep']} />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="Sleep"
+                  stroke="#8b5cf6"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                  connectNulls={false}
                 />
               </LineChart>
             </ResponsiveContainer>

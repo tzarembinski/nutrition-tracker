@@ -50,5 +50,6 @@ export interface DailyLog {
   workout: WorkoutLevel;
   bodyweight: number;
   stress: 1 | 2 | 3;
+  sleep?: number;
   notes?: string;
 }

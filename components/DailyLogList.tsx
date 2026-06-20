@@ -54,7 +54,7 @@ export default function DailyLogList({ logs, onEdit, onDelete }: DailyLogListPro
             </div>
 
             {/* Fields */}
-            <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
                 <div className="text-xs text-gray-500 mb-1">Workout</div>
                 <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium border capitalize ${workoutColors[log.workout]}`}>
@@ -70,6 +70,10 @@ export default function DailyLogList({ logs, onEdit, onDelete }: DailyLogListPro
                 <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${stressColors[log.stress]}`}>
                   {stressLabels[log.stress]}
                 </span>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500 mb-1">Sleep</div>
+                <div className="text-sm font-semibold">{log.sleep != null ? `${log.sleep} hrs` : '—'}</div>
               </div>
             </div>
 

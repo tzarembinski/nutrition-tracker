@@ -119,6 +119,8 @@ export const exportToCSV = (meals: MealEntry[], dailyLogs: DailyLog[] = []): str
     'Workout',
     'Bodyweight (lbs)',
     'Stress',
+    'Sleep (hrs)',
+    'Log Notes',
   ];
 
   const rows = meals.map(meal => {
@@ -136,6 +138,8 @@ export const exportToCSV = (meals: MealEntry[], dailyLogs: DailyLog[] = []): str
       log?.workout || '',
       log?.bodyweight?.toString() || '',
       log?.stress?.toString() || '',
+      log?.sleep?.toString() || '',
+      log?.notes || '',
     ];
   });
 
